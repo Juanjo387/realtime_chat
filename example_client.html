@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real-Time Chat - Example Client</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Oxygen, Ubuntu, Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 24px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+
+      .status {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-top: 8px;
+      }
+
+      .status.disconnected {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .status.connected {
+        background: #10b981;
+      }
+
+      .connection-form {
+        padding: 24px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #374151;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .chat-area {
+        display: none;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .chat-area.active {
+        display: flex;
+      }
+
+      .messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        background: #f9fafb;
+      }
+
+      .message {
+        background: white;
+        padding: 12px 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .message.own {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        margin-left: 60px;
+      }
+
+      .message.system {
+        background: #fef3c7;
+        color: #92400e;
+        text-align: center;
+        font-style: italic;
+      }
+
+      .message-sender {
+        font-weight: 600;
+        margin-bottom: 4px;
+        font-size: 12px;
+      }
+
+      .message.own .message-sender {
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .message-content {
+        word-wrap: break-word;
+      }
+
+      .typing-indicator {
+        padding: 12px 24px;
+        font-style: italic;
+        color: #6b7280;
+        font-size: 14px;
+        display: none;
+      }
+
+      .typing-indicator.active {
+        display: block;
+      }
+
+      .input-area {
+        padding: 24px;
+        border-top: 1px solid #e5e7eb;
+        background: white;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 12px;
+      }
+
+      .input-group input {
+        flex: 1;
+      }
+
+      .info {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 16px;
+        border-radius: 8px;
+        margin: 16px 24px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Real-Time Chat</h1>
+        <div class="status disconnected" id="status">Disconnected</div>
+      </div>
+
+      <div class="connection-form" id="connectionForm">
+        <div class="info">
+          <strong>Instructions:</strong><br />
+          1. Register a user or login at
+          <code>http://localhost:8000/api/users/</code><br />
+          2. Create a conversation at
+          <code>http://localhost:8000/api/chat/conversations/</code><br />
+          3. Enter the conversation ID below to connect
+        </div>
+
+        <div class="form-group">
+          <label for="conversationId">Conversation ID:</label>
+          <input
+            type="text"
+            id="conversationId"
+            placeholder="Enter conversation UUID"
+          />
+        </div>
+
+        <button onclick="connect()" id="connectBtn">Connect</button>
+      </div>
+
+      <div class="chat-area" id="chatArea">
+        <div class="messages" id="messages"></div>
+        <div class="typing-indicator" id="typingIndicator"></div>
+        <div class="input-area">
+          <div class="input-group">
+            <input
+              type="text"
+              id="messageInput"
+              placeholder="Type your message..."
+              onkeypress="handleKeyPress(event)"
+              oninput="handleTyping()"
+            />
+            <button onclick="sendMessage()">Send</button>
+            <button onclick="disconnect()" style="background: #ef4444">
+              Disconnect
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let typingTimeout = null;
+      let isTyping = false;
+
+      function updateStatus(connected) {
+        const status = document.getElementById("status");
+        if (connected) {
+          status.textContent = "Connected";
+          status.className = "status connected";
+        } else {
+          status.textContent = "Disconnected";
+          status.className = "status disconnected";
+        }
+      }
+
+      function connect() {
+        const conversationId = document
+          .getElementById("conversationId")
+          .value.trim();
+
+        if (!conversationId) {
+          alert("Please enter a conversation ID");
+          return;
+        }
+
+        // Close existing connection if any
+        if (socket) {
+          socket.close();
+        }
+
+        // Connect to WebSocket
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//localhost:8000/ws/chat/${conversationId}/`;
+
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = function (e) {
+          console.log("WebSocket connection established");
+          updateStatus(true);
+          document.getElementById("connectionForm").style.display = "none";
+          document.getElementById("chatArea").classList.add("active");
+          addMessage("Connected to chat", "system");
+        };
+
+        socket.onmessage = function (event) {
+          const data = JSON.parse(event.data);
+          console.log("Received:", data);
+
+          if (data.type === "message") {
+            const msg = data.message;
+            addMessage(
+              `${msg.sender_name}: ${msg.content}`,
+              "received",
+              msg.sender_email
+            );
+          } else if (data.type === "typing") {
+            showTypingIndicator(data.user_name, data.is_typing);
+          } else if (data.type === "connection_established") {
+            addMessage(data.message, "system");
+          } else if (data.type === "error") {
+            addMessage(`Error: ${data.message}`, "system");
+          }
+        };
+
+        socket.onerror = function (error) {
+          console.error("WebSocket error:", error);
+          addMessage("Connection error occurred", "system");
+        };
+
+        socket.onclose = function (event) {
+          console.log("WebSocket connection closed");
+          updateStatus(false);
+          addMessage("Disconnected from chat", "system");
+        };
+      }
+
+      function disconnect() {
+        if (socket) {
+          socket.close();
+          socket = null;
+        }
+        document.getElementById("connectionForm").style.display = "block";
+        document.getElementById("chatArea").classList.remove("active");
+        document.getElementById("messages").innerHTML = "";
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const content = input.value.trim();
+
+        if (!content || !socket) {
+          return;
+        }
+
+        // Send message
+        socket.send(
+          JSON.stringify({
+            type: "message",
+            content: content,
+          })
+        );
+
+        // Add to UI
+        addMessage(`You: ${content}`, "own");
+
+        // Clear input
+        input.value = "";
+
+        // Stop typing indicator
+        if (isTyping) {
+          sendTypingIndicator(false);
+          isTyping = false;
+        }
+      }
+
+      function handleKeyPress(event) {
+        if (event.key === "Enter") {
+          sendMessage();
+        }
+      }
+
+      function handleTyping() {
+        if (!socket) return;
+
+        if (!isTyping) {
+          sendTypingIndicator(true);
+          isTyping = true;
+        }
+
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          sendTypingIndicator(false);
+          isTyping = false;
+        }, 1000);
+      }
+
+      function sendTypingIndicator(typing) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({
+              type: "typing",
+              is_typing: typing,
+            })
+          );
+        }
+      }
+
+      function showTypingIndicator(userName, isTyping) {
+        const indicator = document.getElementById("typingIndicator");
+        if (isTyping) {
+          indicator.textContent = `${userName} is typing...`;
+          indicator.classList.add("active");
+        } else {
+          indicator.classList.remove("active");
+        }
+      }
+
+      function addMessage(text, type, sender = "") {
+        const messagesDiv = document.getElementById("messages");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${type}`;
+
+        if (type !== "system" && sender) {
+          const senderDiv = document.createElement("div");
+          senderDiv.className = "message-sender";
+          senderDiv.textContent = sender;
+          messageDiv.appendChild(senderDiv);
+        }
+
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "message-content";
+        contentDiv.textContent = text;
+        messageDiv.appendChild(contentDiv);
+
+        messagesDiv.appendChild(messageDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+    </script>
+  </body>
+</html>

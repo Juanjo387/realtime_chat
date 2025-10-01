@@ -45,6 +45,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'chat.middleware.APILoggingMiddleware',
+    "chat.csrf_middleware.DisableCSRFForAPI",
 ]
 
 ROOT_URLCONF = 'chat_project.urls'
@@ -163,6 +164,13 @@ REST_FRAMEWORK = {
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 CORS_ALLOW_CREDENTIALS = True
+
+# CSRF settings for frontend
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://frontend:3000",  # For Docker
+]
 
 # Logging configuration
 LOGGING = {

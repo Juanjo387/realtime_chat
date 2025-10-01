@@ -108,18 +108,19 @@ CACHES = {
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validators.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validators.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validators.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validators.NumericPasswordValidator',
-    },
+    # Temporarily disabled to troubleshoot
+    # {
+    #     'NAME': 'django.contrib.auth.password_validators.UserAttributeSimilarityValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validators.MinimumLengthValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validators.CommonPasswordValidator',
+    # },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validators.NumericPasswordValidator',
+    # },
 ]
 
 # Internationalization
